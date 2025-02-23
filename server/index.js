@@ -9,7 +9,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://doggy-delights-iota.vercel.app"],
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -29,9 +34,9 @@ const generateDogName = () => {
     "Maverick", "Maximus", "Nero", "Nova", "Odin", "Onyx", "Ranger", "Rex", "Rocky", "Ryder",
     "Samson", "Shadow", "Storm", "Tank", "Titan", "Toby", "Turbo", "Viper", "Wolf", "Zeus"
   ];
-  
+
   const randomName = names[Math.floor(Math.random() * names.length)];
-  
+
   console.log(randomName); // 
   return randomName.replace(/\s+/g, ""); // Remove spaces
 };
