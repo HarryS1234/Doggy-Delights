@@ -2,60 +2,54 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const DogImages = () => {
-  const [file, setfile] = useState(null); // File state for uploaded/generated image
+  const [file, setFile] = useState(null); // File state for uploaded/generated image
   const [status, setStatus] = useState("Idle"); // Default to "Idle"
-  const [uploadProgress, setuploadProgress] = useState(0); // Progress of upload
+  const [uploadProgress, setUploadProgress] = useState(0); // Progress of upload
   const [randomImages, setRandomImages] = useState([]); // Array for the random Images
-  const [imageUrl, setimageUrl] = useState(null); // URL for previewing the latest image
+  const [imageUrl, setImageUrl] = useState(null); // URL for previewing the latest image
 
+  // Handle file selection from the user's computer
   const handleFileChange = (e) => {
     if (e.target.files) {
-      // This makes sure the files array is not empty and only set the setfile then
-      setfile(e.target.files[0]);
+      setFile(e.target.files[0]);
     }
   };
 
-  // Converting the random Image to a file jpeg
+  // Fetch a random dog image and convert it to a file
   const fetchDogImage = async () => {
     try {
       const response = await axios.get("https://dog.ceo/api/breeds/image/random");
+      const imageUrl = response.data.message; // Get the URL of the random dog image
 
-      const imageUrl = response.data.message; // Getting the url
+      // Fetch the image as a blob
+      const fetchUrl = await fetch(imageUrl);
+      const blob = await fetchUrl.blob();
 
-      console.log(imageUrl);
-
-      const fetchUrl = await fetch(imageUrl); // cuz I Need the raw data object to upload it including my headers
-
-      const blob = await fetchUrl.blob(); // blob is binary large object good for images
-
+      // Convert the blob to a File object
       const dogFile = new File([blob], "DogImage.jpg", {
         type: "image/jpeg",
       });
 
-      // here i am creating a file object from the blob and random naming with metadata type and it tells browsers and servers what kind of data the file contains
-
-      console.log(dogFile);
-
-      setfile(dogFile);
-      setimageUrl(imageUrl);
-      
+      // Update state with the new file and image URL
+      setFile(dogFile);
+      setImageUrl(imageUrl);
     } catch (error) {
-      console.log(`Error fetching random Images: ${error}`);
+      console.error("Error fetching random image:", error);
     }
   };
 
-  // Handling the fileUpload from my computer
-  const handleFileUpload = async (fileToUpload = file, url = imageUrl) => {
-    // This is an async funtion
-    if (!fileToUpload) {
+  // Handle file upload to the backend
+  const handleFileUpload = async () => {
+    if (!file) {
+      alert("No file selected!");
       return;
-    } // If not file the function is returnedx
+    }
 
     setStatus("Uploading");
-    setuploadProgress(0); // reset the upload progress
+    setUploadProgress(0);
 
     const formData = new FormData();
-    formData.append("file", fileToUpload); // I am creating a key which takes file as a value
+    formData.append("file", file);
 
     try {
       const response = await axios.post(
@@ -63,30 +57,27 @@ const DogImages = () => {
         formData,
         {
           headers: {
-            // Headers our key contiaining an object
             "Content-Type": "multipart/form-data",
           },
           onUploadProgress: (progressEvent) => {
-            // That's a method in axios
-            const progress = progressEvent.total // file size
+            const progress = progressEvent.total
               ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
               : 0;
-            // I have used conditonal rendering if the file size is available then then showing how much has been done otherwise 0.
-            setuploadProgress(progress);
+            setUploadProgress(progress);
           },
         }
       );
 
       setStatus("Success");
-      setuploadProgress(100); // We have successfully uploaded to the server
+      setUploadProgress(100);
 
-      // Update randomImages with the uploaded image data from the backend
+      // Update the list of uploaded images
       const { name, imageUrl: uploadedUrl } = response.data;
       setRandomImages([...randomImages, { id: Date.now(), imageUrl: uploadedUrl, name }]);
     } catch (error) {
       console.error("Upload error:", error);
       setStatus("Error");
-      setuploadProgress(0);
+      setUploadProgress(0);
     }
   };
 
@@ -94,11 +85,10 @@ const DogImages = () => {
   const handleDeleteAll = async () => {
     try {
       const response = await axios.delete("https://doggy-delights-backend.vercel.app/delete-all");
-      console.log(response.data.message);
       alert(response.data.message);
       setRandomImages([]); // Clear local images
-      setimageUrl(null); // Reset preview
-      setfile(null); // Reset file
+      setImageUrl(null); // Reset preview
+      setFile(null); // Reset file
       setStatus("Idle"); // Reset status
     } catch (error) {
       console.error("Error deleting images:", error);
@@ -108,7 +98,7 @@ const DogImages = () => {
 
   return (
     <div className="flex justify-center gap-4 min-h-screen bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 flex-col items-center p-6 bg-[url('https://www.transparenttextures.com/patterns/paws.png')] bg-opacity-50">
-      {/* Header Explaining the Website */}
+      {/* Header */}
       <header className="text-center mb-10">
         <h1 className="text-5xl font-extrabold drop-shadow-lg animate-bounce">
           Welcome to Doggy Delights! 🐶
@@ -133,7 +123,7 @@ const DogImages = () => {
             onChange={handleFileChange}
           />
           <label
-            htmlFor="file-upload" // just to make it more pretty I have done this
+            htmlFor="file-upload"
             className="bg-purple-500 hover:bg-purple-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110"
           >
             Pick a Pup Pic 🐾
@@ -149,6 +139,18 @@ const DogImages = () => {
             Fetch a Random Good Boy!
           </button>
         </div>
+
+        {/* Upload Button */}
+        {file && (
+          <div className="mb-6">
+            <button
+              onClick={handleFileUpload}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold w-full rounded-full py-4 px-6 transition-all duration-300 shadow-md transform hover:scale-110"
+            >
+              Upload to Doggy Heaven!
+            </button>
+          </div>
+        )}
 
         {/* Delete All Button */}
         <div className="mb-6">
@@ -172,25 +174,8 @@ const DogImages = () => {
           </div>
         )}
 
-        {/* File Details */}
-        {file && (
-          <div className="bg-purple-50 rounded-xl p-4 mb-6">
-            <h3 className="text-xl font-semibold text-purple-700 mb-2">Pup Stats:</h3>
-            <p className="text-gray-800">
-              <span className="font-medium">Name:</span> {file.name}
-            </p>
-            <p className="text-gray-800">
-              <span className="font-medium">Size:</span>{" "}
-              {(file.size / 1024).toFixed(2)} KB
-            </p>
-            <p className="text-gray-800">
-              <span className="font-medium">Type:</span> {file.type}
-            </p>
-          </div>
-        )}
-
         {/* Upload Progress */}
-        {file && status === "Uploading" && (
+        {status === "Uploading" && (
           <div className="mt-4">
             <p className="text-lg text-purple-700 mb-2">
               Uploading: {uploadProgress}%
@@ -204,45 +189,18 @@ const DogImages = () => {
           </div>
         )}
 
-        {/* Upload Button */}
-        {file && status !== "Uploading" && (
-          // Here I am using conditonal redering and using AND operator so if my status is not uploading then only show Upload button
-          <button
-            onClick={handleFileUpload}
-            className="bg-green-500 hover:bg-green-600 text-white font-bold w-full rounded-full py-4 px-6 mt-6 transition-all duration-300 shadow-md transform hover:scale-110"
-          >
-            Send to Doggy Heaven!
-          </button>
-        )}
-
-        {/* Uploaded Successfully */}
+        {/* Upload Status Messages */}
         {status === "Success" && (
           <div className="mt-4 p-4 bg-green-100 text-green-800 rounded-xl flex items-center">
             <span className="text-2xl mr-2">🐶</span> Uploaded to the Pack!
           </div>
         )}
-
-        {/* Uploaded Unsuccessfully */}
         {status === "Error" && (
           <div className="mt-4 p-4 bg-red-100 text-red-800 rounded-xl flex items-center">
             <span className="text-2xl mr-2">😿</span> Oops, Pup Got Lost!
           </div>
         )}
       </div>
-
-      {/* Custom Tailwind Animation */}
-      <style>{`
-        @keyframes wiggle {
-          0% { transform: rotate(0deg); }
-          25% { transform: rotate(5deg); }
-          50% { transform: rotate(0deg); }
-          75% { transform: rotate(-5deg); }
-          100% { transform: rotate(0deg); }
-        }
-        .animate-wiggle {
-          animation: wiggle 0.5s infinite;
-        }
-      `}</style>
     </div>
   );
 };
