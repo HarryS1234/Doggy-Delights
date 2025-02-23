@@ -7,7 +7,7 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "https://doggy-delights-iota.vercel.appn" })); // Adjust for your frontend origin
+app.use(cors({ origin: "https://doggy-delights-iota.vercel.app" })); // Adjust for your frontend origin
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
