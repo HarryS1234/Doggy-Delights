@@ -59,7 +59,7 @@ const DogImages = () => {
     formData.append("file", file); // I am creating a key which takes file as a value
 
     try {
-      await axios.post("http://localhost:3000/upload", formData, {
+      await axios.post("https://doggy-delights-backend.vercel.app/", formData, {
         headers: {
           // Headers our key contiaining an object
           "Content-Type": "multipart/form-data",

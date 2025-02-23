@@ -6,7 +6,7 @@ const DogGallery = () => {
 
   const fetchGallery = async () => {
     try {
-      const response = await axios.get("http://localhost:3000/gallery");
+      const response = await axios.get("https://doggy-delights-backend.vercel.app/");
       console.log("Fetched images:", response.data.images);
       setGalleryImages(response.data.images);
     } catch (error) {
