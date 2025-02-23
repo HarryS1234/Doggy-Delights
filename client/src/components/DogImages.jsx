@@ -60,7 +60,7 @@ const DogImages = () => {
 
     try {
       const response = await axios.post(
-        "https://doggy-delights-backend.vercel.app/api/upload",
+        "https://doggy-delights-backend.vercel.app/upload",
         formData,
         {
           headers: {
