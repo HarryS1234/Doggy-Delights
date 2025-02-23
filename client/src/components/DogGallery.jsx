@@ -30,22 +30,23 @@ const DogGallery = () => {
         {galleryImages.length > 0 ? (
           galleryImages.map((img) => (
             <div
-              key={img.id} // Unique key for each pup
+              key={img.id} 
+              // Unique key for each pup
               className="relative bg-white rounded-xl shadow-xl p-4 transform transition-all hover:scale-105 hover:shadow-2xl animate-bark"
             >
               <img
                 src={img.imageUrl}
-                alt={img.name} // Show my pup’s name if it fails to load
+                alt={img.name} 
                 className="w-full h-48 object-cover rounded-lg"
               />
               <div className="absolute top-2 right-2 bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md">
-                {img.name} // Displaying my pup’s cool name
+                {img.name} 
               </div>
             </div>
           ))
         ) : (
           <p className="text-center text-gray-600">
-            No images yet. Upload some adorable doggos! 🐶 // Let’s encourage some uploads!
+            No images yet. Upload some adorable doggos! 🐶 
           </p>
         )}
       </div>
