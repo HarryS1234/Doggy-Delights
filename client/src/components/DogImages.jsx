@@ -140,17 +140,6 @@ const DogImages = () => {
           </button>
         </div>
 
-        {/* Upload Button */}
-        {file && (
-          <div className="mb-6">
-            <button
-              onClick={handleFileUpload}
-              className="bg-green-500 hover:bg-green-600 text-white font-bold w-full rounded-full py-4 px-6 transition-all duration-300 shadow-md transform hover:scale-110"
-            >
-              Upload to Doggy Heaven!
-            </button>
-          </div>
-        )}
 
         {/* Delete All Button */}
         <div className="mb-6">
@@ -165,7 +154,7 @@ const DogImages = () => {
         {/* Preview Image */}
         {imageUrl && (
           <div className="mb-6">
-            <h3 className="text-xl font-semibold text-purple-700 mb-2">Latest Pup:</h3>
+            <h3 className="text-xl  text-center font-semibold text-purple-700 mb-2">Latest Pup</h3>
             <img
               src={imageUrl}
               alt="Random Dog"
@@ -173,6 +162,19 @@ const DogImages = () => {
             />
           </div>
         )}
+
+        {/* Upload Button */}
+        {file && (
+          <div className="mb-6">
+            <button
+              onClick={handleFileUpload}
+              className="bg-green-500 hover:bg-green-600 text-white font-bold w-full rounded-full py-4 px-6 transition-all duration-300 shadow-md transform hover:scale-110"
+            >
+              Upload to Doggy Heaven!
+            </button>
+          </div>
+        )}
+
 
         {/* Upload Progress */}
         {status === "Uploading" && (
@@ -201,7 +203,21 @@ const DogImages = () => {
           </div>
         )}
       </div>
+      {/* Custom Tailwind Animation */}
+      <style>{`
+        @keyframes wiggle {
+          0% { transform: rotate(0deg); }
+          25% { transform: rotate(5deg); }
+          50% { transform: rotate(0deg); }
+          75% { transform: rotate(-5deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .animate-wiggle {
+          animation: wiggle 0.5s infinite;
+        }
+      `}</style>
     </div>
+    
   );
 };
 
