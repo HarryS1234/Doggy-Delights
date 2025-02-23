@@ -6,18 +6,20 @@ const DogGallery = () => {
 
   const fetchGallery = async () => {
     try {
-      const response = await axios.get("https://doggy-delights-backend.vercel.app/");
+      const response = await axios.get("https://doggy-delights-backend.vercel.app/api/gallery");
       console.log("Fetched images:", response.data.images);
-      setGalleryImages(response.data.images);
+      setGalleryImages(response.data.images || []); // Setting my gallery images, default to empty array if nothing comes back
     } catch (error) {
-      console.error("Error fetching gallery:", error);
+      console.error("Error fetching gallery:", error); // If something goes wrong, I wanna know!
     }
   };
-  useEffect(() => {
-    fetchGallery();
-  }, []);
 
   // Everytime there's a change it updates using useffect
+  useEffect(() => {
+    fetchGallery(); // Fetch my gallery when the component loads
+    const interval = setInterval(fetchGallery, 5000); // Keep checking every 5 seconds for new pups
+    return () => clearInterval(interval); // Clean up when I leave the page
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-200 via-green-200 to-yellow-200 p-8">
@@ -28,22 +30,22 @@ const DogGallery = () => {
         {galleryImages.length > 0 ? (
           galleryImages.map((img) => (
             <div
-              key={img.id} 
+              key={img.id} // Unique key for each pup
               className="relative bg-white rounded-xl shadow-xl p-4 transform transition-all hover:scale-105 hover:shadow-2xl animate-bark"
             >
               <img
                 src={img.imageUrl}
-                alt={img.name} 
+                alt={img.name} // Show my pup’s name if it fails to load
                 className="w-full h-48 object-cover rounded-lg"
               />
               <div className="absolute top-2 right-2 bg-yellow-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-md">
-                {img.name} 
+                {img.name} // Displaying my pup’s cool name
               </div>
             </div>
           ))
         ) : (
           <p className="text-center text-gray-600">
-            No images yet. Upload some adorable doggos! 🐶
+            No images yet. Upload some adorable doggos! 🐶 // Let’s encourage some uploads!
           </p>
         )}
       </div>
@@ -56,7 +58,7 @@ const DogGallery = () => {
           100% { transform: scale(1); }
         }
         .animate-bark:hover {
-          animation: bark 0.3s ease-in-out;
+          animation: bark 0.3s ease-in-out; // Bark animation for my pups!
         }
       `}</style>
     </div>

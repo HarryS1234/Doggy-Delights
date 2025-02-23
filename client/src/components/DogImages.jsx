@@ -20,7 +20,6 @@ const DogImages = () => {
     try {
       const response = await axios.get("https://dog.ceo/api/breeds/image/random");
 
-
       const imageUrl = response.data.message; // Getting the url
 
       console.log(imageUrl);
@@ -39,16 +38,17 @@ const DogImages = () => {
 
       setfile(dogFile);
       setimageUrl(imageUrl);
-      setRandomImages([...randomImages, {  imageUrl }]);
+      // Automatically upload the random image to the backend
+      await handleFileUpload(dogFile, imageUrl);
     } catch (error) {
       console.log(`Error fetching random Images: ${error}`);
     }
   };
 
   // Handling the fileUpload from my computer
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = async (fileToUpload = file, url = imageUrl) => {
     // This is an async funtion
-    if (!file) {
+    if (!fileToUpload) {
       return;
     } // If not file the function is returnedx
 
@@ -56,41 +56,66 @@ const DogImages = () => {
     setuploadProgress(0); // reset the upload progress
 
     const formData = new FormData();
-    formData.append("file", file); // I am creating a key which takes file as a value
+    formData.append("file", fileToUpload); // I am creating a key which takes file as a value
 
     try {
-      await axios.post("https://doggy-delights-backend.vercel.app/", formData, {
-        headers: {
-          // Headers our key contiaining an object
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          // That's a method in axios
-          const progress = progressEvent.total // file size
-            ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-            : 0;
-          // I have used conditonal rendering if the file size is available then then showing how much has been done otherwise 0.
-          setuploadProgress(progress);
-        },
-      });
+      const response = await axios.post(
+        "https://doggy-delights-backend.vercel.app/api/upload",
+        formData,
+        {
+          headers: {
+            // Headers our key contiaining an object
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            // That's a method in axios
+            const progress = progressEvent.total // file size
+              ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+              : 0;
+            // I have used conditonal rendering if the file size is available then then showing how much has been done otherwise 0.
+            setuploadProgress(progress);
+          },
+        }
+      );
 
       setStatus("Success");
       setuploadProgress(100); // We have successfully uploaded to the server
+
+      // Update randomImages with the uploaded image data from the backend
+      const { name, imageUrl: uploadedUrl } = response.data;
+      setRandomImages([...randomImages, { id: Date.now(), imageUrl: uploadedUrl, name }]);
     } catch (error) {
+      console.error("Upload error:", error);
       setStatus("Error");
       setuploadProgress(0);
     }
   };
 
+  // Delete all images from Cloudinary
+  const handleDeleteAll = async () => {
+    try {
+      const response = await axios.delete("https://doggy-delights-backend.vercel.app/api/delete-all");
+      console.log(response.data.message);
+      alert(response.data.message);
+      setRandomImages([]); // Clear local images
+      setimageUrl(null); // Reset preview
+      setfile(null); // Reset file
+      setStatus("Idle"); // Reset status
+    } catch (error) {
+      console.error("Error deleting images:", error);
+      alert("Failed to delete images");
+    }
+  };
+
   return (
-    <div className=" flex justify-center gap-4  min-h-screen bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 flex-col items-center p-6 bg-[url('https://www.transparenttextures.com/patterns/paws.png')] bg-opacity-50">
+    <div className="flex justify-center gap-4 min-h-screen bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 flex-col items-center p-6 bg-[url('https://www.transparenttextures.com/patterns/paws.png')] bg-opacity-50">
       {/* Header Explaining the Website */}
       <header className="text-center mb-10">
-        <h1 className="text-5xl font-extrabold  drop-shadow-lg animate-bounce">
+        <h1 className="text-5xl font-extrabold drop-shadow-lg animate-bounce">
           Welcome to Doggy Delights! 🐶
         </h1>
         <p className="text-xl font-semibold mt-4 max-w-2xl mx-auto drop-shadow-md">
-        Calling all dog lovers! Share your favorite pup pics or fetch a random adorable doggo with just one click. Dive into our Gallery for a pawsome time filled with tail wags and cuteness overload!
+          Calling all dog lovers! Share your favorite pup pics or fetch a random adorable doggo with just one click. Dive into our Gallery for a pawsome time filled with tail wags and cuteness overload!
         </p>
       </header>
 
@@ -123,6 +148,16 @@ const DogImages = () => {
             className="bg-pink-500 hover:bg-pink-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110 animate-wiggle"
           >
             Fetch a Random Good Boy!
+          </button>
+        </div>
+
+        {/* Delete All Button */}
+        <div className="mb-6">
+          <button
+            onClick={handleDeleteAll}
+            className="bg-red-500 hover:bg-red-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110"
+          >
+            Clear Gallery 🗑️
           </button>
         </div>
 
