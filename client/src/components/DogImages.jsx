@@ -94,7 +94,7 @@ const DogImages = () => {
   // Delete all images from Cloudinary
   const handleDeleteAll = async () => {
     try {
-      const response = await axios.delete("https://doggy-delights-backend.vercel.app/api/delete-all");
+      const response = await axios.delete("https://doggy-delights-backend.vercel.app/delete-all");
       console.log(response.data.message);
       alert(response.data.message);
       setRandomImages([]); // Clear local images
