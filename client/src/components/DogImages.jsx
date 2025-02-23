@@ -38,8 +38,7 @@ const DogImages = () => {
 
       setfile(dogFile);
       setimageUrl(imageUrl);
-      // Automatically upload the random image to the backend
-      await handleFileUpload(dogFile, imageUrl);
+      
     } catch (error) {
       console.log(`Error fetching random Images: ${error}`);
     }
