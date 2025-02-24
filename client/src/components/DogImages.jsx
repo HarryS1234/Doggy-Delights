@@ -2,26 +2,25 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const DogImages = () => {
-  const [files, setFiles] = useState([]); // File state for uploaded and generated image
+  const [file, setFile] = useState(null); // File state for uploaded and generated image
   const [status, setStatus] = useState("Idle"); // Default to "Idle"
   const [uploadProgress, setUploadProgress] = useState(0); // Progress of upload
   const [randomImages, setRandomImages] = useState([]); // Array for the random Images
-  const [imageUrls, setImageUrls] = useState([]); // URL for previewing the latest images (changed to array)
+  const [imageUrl, setImageUrl] = useState(null); // URL for previewing the latest image
 
   // Handle file selection from the user's computer
   const handleFileChange = (e) => {
     if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files); // Get all selected files
-      setFiles(selectedFiles);
-      const urls = selectedFiles.map((file) => URL.createObjectURL(file)); // Generate preview URLs
-      setImageUrls(urls);
+      setFile(e.target.files[0]);
     }
   };
 
   // Fetch a random dog image and convert it to a file
   const fetchDogImage = async () => {
     try {
-      const response = await axios.get("https://dog.ceo/api/breeds/image/random");
+      const response = await axios.get(
+        "https://dog.ceo/api/breeds/image/random"
+      );
       const imageUrl = response.data.message; // Get the URL of the random dog image
 
       // Fetch the image as a blob
@@ -35,8 +34,8 @@ const DogImages = () => {
       });
 
       // Update state with the new file and image URL
-      setFiles([dogFile]); // Store as array for consistency
-      setImageUrls([imageUrl]);
+      setFile(dogFile);
+      setImageUrl(imageUrl);
     } catch (error) {
       console.error("Error fetching random image:", error);
     }
@@ -44,8 +43,7 @@ const DogImages = () => {
 
   // Handle file upload to the backend
   const handleFileUpload = async () => {
-    if (!files.length) {
-      // Changed from !files to !files.length to check array
+    if (!file) {
       alert("No file selected!");
       return;
     }
@@ -53,13 +51,12 @@ const DogImages = () => {
     setStatus("Uploading");
     setUploadProgress(0);
 
-    // Upload multiple files concurrently
-    const uploadPromises = files.map(async (file) => {
-      const formData = new FormData();
-      formData.append("file", file); // Match backend's "file" key
+    const formData = new FormData();
+    formData.append("file", file);
 
+    try {
       const response = await axios.post(
-        "https://doggy-delights-backend.vercel.app/api/upload", // Fixed URL
+        "https://doggy-delights-backend.vercel.app/upload",
         formData,
         {
           headers: {
@@ -69,33 +66,23 @@ const DogImages = () => {
             const progress = progressEvent.total
               ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
               : 0;
-            // That's from axios helps me with how much file has been uploaded. Just for fun. Using ternary operator.
-            setUploadProgress((prev) => {
-              const totalProgress = files.reduce((acc, _, i) => {
-                return acc + (i === files.indexOf(file) ? progress : prev / files.length);
-              }, 0);
-              return Math.min(totalProgress / files.length, 100);
-            });
+            setUploadProgress(progress);
           },
+
+          // That's from axios helps me with how much file has been uploaded. Just for fun. Using ternary operator.
         }
       );
-      return response.data;
-    });
 
-    try {
-      const responses = await Promise.all(uploadPromises);
       setStatus("Success");
       setUploadProgress(100); // upload is finished
 
       // Update the list of uploaded images
-      const newImages = responses.map((data) => {
-        const { name, imageUrl: uploadedUrl } = data;
-        // Here I am doing object destructuring. Response.data is my object in backend holding the name and cloudinary Url. So I am just refering that get me the name value and Image Url I just renamed the value.
-        return { id: Date.now() + Math.random(), imageUrl: uploadedUrl, name }; // Unique ID
-      });
-      setRandomImages([...randomImages, ...newImages]); // Spread operator new array including the previous files just adding new ones.
-      setFiles([]); // Clear after upload
-      setImageUrls([]);
+      const { name, imageUrl: uploadedUrl } = response.data;
+      // Here I am doing object destructuring. Response.data is my object in backend holding the name and cloudinary Url. So I am just refering that get me the name value and Image Url I just renamed the value.
+      setRandomImages([
+        ...randomImages,
+        { id: Date.now(), imageUrl: uploadedUrl, name },
+      ]); // Spread operator new array including the previous files just adding new ones. 
     } catch (error) {
       console.error("Upload error:", error);
       setStatus("Error");
@@ -107,12 +94,12 @@ const DogImages = () => {
   const handleDeleteAll = async () => {
     try {
       const response = await axios.delete(
-        "https://doggy-delights-backend.vercel.app/api/delete-all"
+        "https://doggy-delights-backend.vercel.app/delete-all"
       );
-      alert(response.data.message); // Giving User a Choice
+      alert(response.data.message); // Giving User a Choice 
       setRandomImages([]); // Clearing local images
-      setImageUrls([]); // Reseting (changed to array)
-      setFiles([]); // Reseting file (changed to array)
+      setImageUrl(null); // Reseting
+      setFile(null); // Reseting file
       setStatus("Idle"); // Reseting status
     } catch (error) {
       console.error("Error deleting images:", error);
@@ -145,7 +132,6 @@ const DogImages = () => {
           <input
             id="file-upload"
             type="file"
-            multiple // Added to allow multiple files
             className="hidden"
             onChange={handleFileChange}
           />
@@ -161,7 +147,7 @@ const DogImages = () => {
         <div className="mb-6">
           <button
             onClick={fetchDogImage}
-            className="bg-pink-500 hover:bg-purple-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110 animate-wiggle"
+            className="bg-pink-500 hover:bg-pink-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110 animate-wiggle"
           >
             Fetch a Random Good Boy!
           </button>
@@ -177,27 +163,22 @@ const DogImages = () => {
           </button>
         </div>
 
-        {/* Preview Images Using conditional rendering */}
-        {imageUrls.length > 0 && (
+        {/* Preview Image Using conditional rendering*/}
+        {imageUrl && (
           <div className="mb-6">
-            <h3 className="text-xl text-center font-semibold text-purple-700 mb-2">
-              Latest Pups
+            <h3 className="text-xl  text-center font-semibold text-purple-700 mb-2">
+              Latest Pup
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {imageUrls.map((url, index) => (
-                <img
-                  key={index}
-                  src={url}
-                  alt={`Pup ${index}`}
-                  className="w-full rounded-xl shadow-lg transform transition-all hover:rotate-3"
-                />
-              ))}
-            </div>
+            <img
+              src={imageUrl}
+              alt="Random Dog"
+              className="w-full rounded-xl shadow-lg transform transition-all hover:rotate-3"
+            />
           </div>
         )}
 
         {/* Upload Button */}
-        {files.length > 0 && (
+        {file && (
           <div className="mb-6">
             <button
               onClick={handleFileUpload}

@@ -44,18 +44,17 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage });
 
-// Upload Multiple files 
-app.post("/upload", upload.array("files", 10), (req, res) => {
-  // I have set the limit to 10 
-  if (!req.files || req.files.length == 0) return res.status(400).json({ error: "No file uploaded" });
 
-  const uploadedFiles = req.files.map((imgfile) => ({
-    name: imgfile.filename,
-    imageUrl: imgfile.path,
-  }));
 
-  console.log(`Uploaded ${uploadedFiles.length} images`);
-  res.status(200).json(uploadedFiles);
+// Upload Endpoint
+app.post("/upload", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  const imageUrl = req.file.path;
+  const publicId = req.file.filename;
+
+  console.log(`Uploaded image: ${imageUrl} with Public ID: ${publicId}`);
+  res.status(200).json({ name: publicId, imageUrl });
 });
 
 // 📂 GET Gallery
@@ -97,6 +96,7 @@ app.delete("/delete-all", async (req, res) => {
 
     // Here the delete-all route accepts the delete request from forntend.
     // Response is getting the image list from cloudinary awaiting it.
+
     if (response.resources.length === 0) {
       return res.status(200).json({ message: "No images to delete" });
     } // If Zero Images then show the message. 
@@ -112,6 +112,7 @@ app.delete("/delete-all", async (req, res) => {
 
     await Promise.all(ImagesArray); // If I have 250 images:
     // ImagesArray ends up with 3 promises (batches of 100, 100, and 50) Promise.all make it a single promise
+  
 
     console.log(`Deleted ${publicIds.length} images`);
     res.status(200).json({ message: `Deleted ${publicIds.length} images` });
@@ -121,4 +122,7 @@ app.delete("/delete-all", async (req, res) => {
   }
 });
 
+
 module.exports = app;
+
+
