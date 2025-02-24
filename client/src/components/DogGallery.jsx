@@ -8,7 +8,7 @@ const DogGallery = () => {
     try {
       const response = await axios.get("https://doggy-delights-backend.vercel.app/gallery");
       console.log("Fetched images:", response.data.images);
-      setGalleryImages(response.data.images || []); // Setting my gallery images, default to empty array if nothing comes back
+      setGalleryImages(response.data.images || []); // Setting my gallery images and default to empty array if nothing comes back
     } catch (error) {
       console.error("Error fetching gallery:", error); // If something goes wrong, I wanna know!
     }

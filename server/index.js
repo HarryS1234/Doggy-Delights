@@ -7,7 +7,7 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "https://doggy-delights-iota.vercel.app" })); // Adjust for your frontend origin
+app.use(cors({ origin: "https://doggy-delights-iota.vercel.app" })); // Usign my vercel frontend 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -39,19 +39,23 @@ const storage = new CloudinaryStorage({
     folder: "dog-gallery",
     format: async () => "png",
     public_id: (req, file) => `${generateDogName()}-${Date.now()}`,
+    // Here i am passing the params to dynamically generate the Id otherwise it would be same for all images. Here Cloudinary storage object expects some params. Req is my requested url and file object. 
   },
 });
 const upload = multer({ storage });
 
-// Upload Endpoint
-app.post("/upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+// Upload Multiple files 
+app.post("/upload", upload.array("files", 10), (req, res) => {
+  // I have set the limit to 10 
+  if (!req.files || req.files.length == 0) return res.status(400).json({ error: "No file uploaded" });
 
-  const imageUrl = req.file.path;
-  const publicId = req.file.filename;
+  const uploadedFiles = req.files.map((imgfile) => ({
+    name: imgfile.filename,
+    imageUrl: imgfile.path,
+  }));
 
-  console.log(`Uploaded image: ${imageUrl} with Public ID: ${publicId}`);
-  res.status(200).json({ name: publicId, imageUrl });
+  console.log(`Uploaded ${uploadedFiles.length} images`);
+  res.status(200).json(uploadedFiles);
 });
 
 // 📂 GET Gallery
@@ -82,7 +86,7 @@ app.get("/gallery", async (req, res) => {
   }
 });
 
-//  Delete All Images
+//  Deleting All Images
 app.delete("/delete-all", async (req, res) => {
   try {
     const response = await cloudinary.api.resources({
@@ -91,18 +95,24 @@ app.delete("/delete-all", async (req, res) => {
       max_results: 500,
     });
 
+    // Here the delete-all route accepts the delete request from forntend.
+    // Response is getting the image list from cloudinary awaiting it.
     if (response.resources.length === 0) {
       return res.status(200).json({ message: "No images to delete" });
-    }
+    } // If Zero Images then show the message. 
 
     const publicIds = response.resources.map((img) => img.public_id);
-    const deletePromises = [];
+
+    // Simply mapping getting the images and then running a loop to delete them and max is 100 
+    const ImagesArray = [];
     for (let i = 0; i < publicIds.length; i += 100) {
-      const batch = publicIds.slice(i, i + 100);
-      deletePromises.push(cloudinary.api.delete_resources(batch));
+      const batch = publicIds.slice(i, i + 100); // Getting the first 100 images as thats the max limit
+      ImagesArray.push(cloudinary.api.delete_resources(batch)); // Then push them to cloudinary to delete 
     }
 
-    await Promise.all(deletePromises);
+    await Promise.all(ImagesArray); // If I have 250 images:
+    // ImagesArray ends up with 3 promises (batches of 100, 100, and 50) Promise.all make it a single promise
+
     console.log(`Deleted ${publicIds.length} images`);
     res.status(200).json({ message: `Deleted ${publicIds.length} images` });
   } catch (error) {
@@ -111,7 +121,4 @@ app.delete("/delete-all", async (req, res) => {
   }
 });
 
-
 module.exports = app;
-
-

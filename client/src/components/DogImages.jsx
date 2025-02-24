@@ -2,16 +2,19 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const DogImages = () => {
-  const [file, setFile] = useState(null); // File state for uploaded/generated image
+  const [files, setFiles] = useState([]); // File state for uploaded and generated image
   const [status, setStatus] = useState("Idle"); // Default to "Idle"
   const [uploadProgress, setUploadProgress] = useState(0); // Progress of upload
   const [randomImages, setRandomImages] = useState([]); // Array for the random Images
-  const [imageUrl, setImageUrl] = useState(null); // URL for previewing the latest image
+  const [imageUrls, setImageUrls] = useState([]); // URL for previewing the latest images (changed to array)
 
   // Handle file selection from the user's computer
   const handleFileChange = (e) => {
     if (e.target.files) {
-      setFile(e.target.files[0]);
+      const selectedFiles = Array.from(e.target.files); // Get all selected files
+      setFiles(selectedFiles);
+      const urls = selectedFiles.map((file) => URL.createObjectURL(file)); // Generate preview URLs
+      setImageUrls(urls);
     }
   };
 
@@ -28,11 +31,12 @@ const DogImages = () => {
       // Convert the blob to a File object
       const dogFile = new File([blob], "DogImage.jpg", {
         type: "image/jpeg",
+        // That's for meta type image is in jpeg format
       });
 
       // Update state with the new file and image URL
-      setFile(dogFile);
-      setImageUrl(imageUrl);
+      setFiles([dogFile]); // Store as array for consistency
+      setImageUrls([imageUrl]);
     } catch (error) {
       console.error("Error fetching random image:", error);
     }
@@ -40,7 +44,8 @@ const DogImages = () => {
 
   // Handle file upload to the backend
   const handleFileUpload = async () => {
-    if (!file) {
+    if (!files.length) {
+      // Changed from !files to !files.length to check array
       alert("No file selected!");
       return;
     }
@@ -48,12 +53,13 @@ const DogImages = () => {
     setStatus("Uploading");
     setUploadProgress(0);
 
-    const formData = new FormData();
-    formData.append("file", file);
+    // Upload multiple files concurrently
+    const uploadPromises = files.map(async (file) => {
+      const formData = new FormData();
+      formData.append("file", file); // Match backend's "file" key
 
-    try {
       const response = await axios.post(
-        "https://doggy-delights-backend.vercel.app/upload",
+        "https://doggy-delights-backend.vercel.app/api/upload", // Fixed URL
         formData,
         {
           headers: {
@@ -63,17 +69,33 @@ const DogImages = () => {
             const progress = progressEvent.total
               ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
               : 0;
-            setUploadProgress(progress);
+            // That's from axios helps me with how much file has been uploaded. Just for fun. Using ternary operator.
+            setUploadProgress((prev) => {
+              const totalProgress = files.reduce((acc, _, i) => {
+                return acc + (i === files.indexOf(file) ? progress : prev / files.length);
+              }, 0);
+              return Math.min(totalProgress / files.length, 100);
+            });
           },
         }
       );
+      return response.data;
+    });
 
+    try {
+      const responses = await Promise.all(uploadPromises);
       setStatus("Success");
-      setUploadProgress(100);
+      setUploadProgress(100); // upload is finished
 
       // Update the list of uploaded images
-      const { name, imageUrl: uploadedUrl } = response.data;
-      setRandomImages([...randomImages, { id: Date.now(), imageUrl: uploadedUrl, name }]);
+      const newImages = responses.map((data) => {
+        const { name, imageUrl: uploadedUrl } = data;
+        // Here I am doing object destructuring. Response.data is my object in backend holding the name and cloudinary Url. So I am just refering that get me the name value and Image Url I just renamed the value.
+        return { id: Date.now() + Math.random(), imageUrl: uploadedUrl, name }; // Unique ID
+      });
+      setRandomImages([...randomImages, ...newImages]); // Spread operator new array including the previous files just adding new ones.
+      setFiles([]); // Clear after upload
+      setImageUrls([]);
     } catch (error) {
       console.error("Upload error:", error);
       setStatus("Error");
@@ -84,12 +106,14 @@ const DogImages = () => {
   // Delete all images from Cloudinary
   const handleDeleteAll = async () => {
     try {
-      const response = await axios.delete("https://doggy-delights-backend.vercel.app/delete-all");
-      alert(response.data.message);
-      setRandomImages([]); // Clear local images
-      setImageUrl(null); // Reset preview
-      setFile(null); // Reset file
-      setStatus("Idle"); // Reset status
+      const response = await axios.delete(
+        "https://doggy-delights-backend.vercel.app/api/delete-all"
+      );
+      alert(response.data.message); // Giving User a Choice
+      setRandomImages([]); // Clearing local images
+      setImageUrls([]); // Reseting (changed to array)
+      setFiles([]); // Reseting file (changed to array)
+      setStatus("Idle"); // Reseting status
     } catch (error) {
       console.error("Error deleting images:", error);
       alert("Failed to delete images");
@@ -104,7 +128,9 @@ const DogImages = () => {
           Welcome to Doggy Delights! 🐶
         </h1>
         <p className="text-xl font-semibold mt-4 max-w-2xl mx-auto drop-shadow-md">
-          Calling all dog lovers! Share your favorite pup pics or fetch a random adorable doggo with just one click. Dive into our Gallery for a pawsome time filled with tail wags and cuteness overload!
+          Calling all dog lovers! Share your favorite pup pics or fetch a random
+          adorable doggo with just one click. Dive into our Gallery for a
+          pawsome time filled with tail wags and cuteness overload!
         </p>
       </header>
 
@@ -119,6 +145,7 @@ const DogImages = () => {
           <input
             id="file-upload"
             type="file"
+            multiple // Added to allow multiple files
             className="hidden"
             onChange={handleFileChange}
           />
@@ -134,12 +161,11 @@ const DogImages = () => {
         <div className="mb-6">
           <button
             onClick={fetchDogImage}
-            className="bg-pink-500 hover:bg-pink-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110 animate-wiggle"
+            className="bg-pink-500 hover:bg-purple-600 text-white font-bold w-full cursor-pointer transition-all duration-300 rounded-full py-4 px-6 inline-block text-center shadow-md transform hover:scale-110 animate-wiggle"
           >
             Fetch a Random Good Boy!
           </button>
         </div>
-
 
         {/* Delete All Button */}
         <div className="mb-6">
@@ -151,20 +177,27 @@ const DogImages = () => {
           </button>
         </div>
 
-        {/* Preview Image */}
-        {imageUrl && (
+        {/* Preview Images Using conditional rendering */}
+        {imageUrls.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xl  text-center font-semibold text-purple-700 mb-2">Latest Pup</h3>
-            <img
-              src={imageUrl}
-              alt="Random Dog"
-              className="w-full rounded-xl shadow-lg transform transition-all hover:rotate-3"
-            />
+            <h3 className="text-xl text-center font-semibold text-purple-700 mb-2">
+              Latest Pups
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {imageUrls.map((url, index) => (
+                <img
+                  key={index}
+                  src={url}
+                  alt={`Pup ${index}`}
+                  className="w-full rounded-xl shadow-lg transform transition-all hover:rotate-3"
+                />
+              ))}
+            </div>
           </div>
         )}
 
         {/* Upload Button */}
-        {file && (
+        {files.length > 0 && (
           <div className="mb-6">
             <button
               onClick={handleFileUpload}
@@ -174,7 +207,6 @@ const DogImages = () => {
             </button>
           </div>
         )}
-
 
         {/* Upload Progress */}
         {status === "Uploading" && (
@@ -217,7 +249,6 @@ const DogImages = () => {
         }
       `}</style>
     </div>
-    
   );
 };
 
