@@ -7,18 +7,18 @@ const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const app = express();
 
 // Middleware
-app.use(cors({ origin: "https://doggy-delights-iota.vercel.app" })); // Usign my vercel frontend 
+app.use(cors({ origin: "https://doggy-delights-iota.vercel.app" })); // Using my vercel frontend 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🌥️ Cloudinary Config (Using environment variables on Vercel)
+// Cloudinary Config 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// 🔥 Function to Generate Cool Random Dog Names
+// Function to GenerateRandom Dog Names
 const generateDogName = () => {
   const names = [
     "Ace", "Apollo", "Archer", "Atlas", "Axel", "Bandit", "Baxter", "Blaze", "Bolt", "Boomer",
@@ -32,7 +32,7 @@ const generateDogName = () => {
   return randomName.replace(/\s+/g, "");
 };
 
-// 🎥 Set Up Multer Storage for Cloudinary
+// Setting Up Multer Storage for Cloudinary
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -46,9 +46,11 @@ const upload = multer({ storage });
 
 
 
-// Upload Endpoint
+// Upload routee
 app.post("/upload", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+  // Handles the post request from frontend  and req.file has our image 
 
   const imageUrl = req.file.path;
   const publicId = req.file.filename;
@@ -57,7 +59,6 @@ app.post("/upload", upload.single("file"), (req, res) => {
   res.status(200).json({ name: publicId, imageUrl });
 });
 
-// 📂 GET Gallery
 app.get("/gallery", async (req, res) => {
   try {
     const response = await cloudinary.api.resources({
